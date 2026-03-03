@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OB Lineouts — Old Belvedere Juniors</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+<!-- Plotly -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+
+<!-- PapaParse for CSV -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  /* ── Reset & base ───────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f0f0f;
+    --surface:  #1a1a1a;
+    --card:     #222222;
+    --border:   #2e2e2e;
+    --text:     #f0f0f0;
+    --muted:    #888;
+    --pitch:    #3a8a3a;
+    --pitch-dark: #2d7030;
+    --won:      #4caf6e;
+    --lost:     #e05555;
+    --radius:   10px;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ─────────────────────────────────── */
+  .shell {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ── Header ─────────────────────────────────── */
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+    position: relative;
+  }
+  header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 6vw, 72px);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: #fff;
+  }
+  header p {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .header-rule {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 28px 0;
+  }
+
+  /* ── Selectors ──────────────────────────────── */
+  .selectors {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .selector-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-left: 4px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .selector-card img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #111;
+    flex-shrink: 0;
+  }
+  .selector-card .no-logo {
+    width: 44px; height: 44px;
+    border-radius: 6px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .selector-card label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-family: var(--font-body);
+  }
+  .selector-card select {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    outline: none;
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .selector-card select option {
+    background: #1a1a1a;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+
+  /* ── Section divider ────────────────────────── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 0.06em;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+
+  /* ── Two-column grid ────────────────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  /* ── Table card ─────────────────────────────── */
+  .table-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .table-header img {
+    width: 36px; height: 36px;
+    object-fit: contain;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+  .table-header .no-logo {
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    flex-shrink: 0;
+  }
+  .table-header span {
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: 0.05em;
+    color: #fff;
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  thead th {
+    padding: 8px 12px;
+    text-align: left;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: rgba(255,255,255,0.04);
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.04); }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  tbody td {
+    padding: 7px 12px;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #ccc;
+  }
+  .won  { color: var(--won);  font-weight: 600; }
+  .lost { color: var(--lost); font-weight: 600; }
+
+  /* ── Metric cards ───────────────────────────── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .metric {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+    border-top: 3px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .metric-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .metric-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 0.02em;
+    color: #fff;
+    line-height: 1;
+  }
+
+  /* ── Pitch section ──────────────────────────── */
+  .pitch-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  #pitch { width: 100%; }
+
+  /* ── Loading / empty states ─────────────────── */
+  .loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.1em;
+  }
+  .empty-row td {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px !important;
+    font-style: italic;
+  }
+
+  /* ── Responsive ─────────────────────────────── */
+  @media (max-width: 768px) {
+    .selectors, .two-col { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <h1>🏉 Old Belvedere Juniors</h1>
+    <p>Lineout Analysis Dashboard</p>
+  </header>
+  <div class="header-rule"></div>
+
+  <!-- Selectors -->
+  <div class="selectors">
+    <div class="selector-card" id="team-card" style="border-left-color:#555">
+      <div class="no-logo" id="team-logo-wrap"></div>
+      <div style="flex:1;min-width:0">
+        <label>Team</label>
+        <select id="team-select"></select>
+      </div>
+    </div>
+    <div class="selector-card" id="opp-card" style="border-left-color:#555">
+      <div class="no-logo" id="opp-logo-wrap"></div>
+      <div style="flex:1;min-width:0">
+        <label>Opponent</label>
+        <select id="opp-select"></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="two-col" id="tables-section">
+    <div>
+      <div class="table-card" id="team-table-card">
+        <div class="table-header" id="team-table-header">
+          <div class="no-logo"></div>
+          <span id="team-table-title">—</span>
+        </div>
+        <div class="table-wrap">
+          <table><thead id="team-thead"></thead><tbody id="team-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="metrics" id="team-metrics"></div>
+    </div>
+    <div>
+      <div class="table-card" id="opp-table-card">
+        <div class="table-header" id="opp-table-header">
+          <div class="no-logo"></div>
+          <span id="opp-table-title">—</span>
+        </div>
+        <div class="table-wrap">
+          <table><thead id="opp-thead"></thead><tbody id="opp-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="metrics" id="opp-metrics"></div>
+    </div>
+  </div>
+
+  <!-- Pitch -->
+  <div class="header-rule"></div>
+  <p class="section-title">Lineout Positions</p>
+  <div class="pitch-section">
+    <div id="pitch"></div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+// CONFIG — paste your published Google Sheet CSV URL here
+// ─────────────────────────────────────────────────────────
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/SHEET_ID/export?format=csv&gid=0";
+
+const STYLERS = {
+  "Old Belvedere J2": { logo: "https://www.thefrontrowunion.com/wp-content/uploads/2020/09/Old-Belvedere-Crest.png", color: "#000000" },
+  "Old Wesley":       { logo: "https://www.oldwesley.ie/wp-content/uploads/2019/11/Old-Wesley-Crest.png",           color: "#FF0000" },
+  "St.Mary's":        { logo: "https://www.oldwesley.ie/wp-content/uploads/2019/11/St-Marys-RFC-Crest.png",         color: "#307FC6" },
+  "Terenure":         { logo: "https://alchetron.com/cdn/terenure-college-rfc-32198669-fd32-44f2-bf6e-03443236188-resize-750.jpeg", color: "#ba55d3" },
+  "Naas":             { logo: "https://clubs.clubforce.com/wp/wp-content/uploads/2018/10/Naas-RFC-Logo-b.jpg",      color: "#3F9925" },
+};
+
+const VIEW_COLS = ["Call","Movement","Outcome","Clean","Play","Receiver","Defended","Defender","Personnel"];
+
+// ─────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────
+let allData = [];
+let teams = [], opponents = [];
+
+// ─────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────
+function getCfg(team) {
+  return STYLERS[team] || { logo: "", color: "#555555" };
+}
+
+function modeCall(rows) {
+  if (!rows.length) return "N/A";
+  const freq = {};
+  rows.forEach(r => { freq[r.Call] = (freq[r.Call] || 0) + 1; });
+  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+}
+function successRate(rows) {
+  return rows.length ? ((rows.filter(r => r.Outcome === "Won").length / rows.length) * 100).toFixed(1) + "%" : "—";
+}
+function defendedRate(rows) {
+  return rows.length ? ((rows.filter(r => r.Defended === "Y").length / rows.length) * 100).toFixed(1) + "%" : "—";
+}
+
+function setLogo(wrapId, url, color) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  if (url) {
+    wrap.outerHTML = `<img id="${wrapId}" src="${url}" onerror="this.style.display='none'" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.06);flex-shrink:0">`;
+  }
+}
+
+function setTableLogo(headerId, url, title, color) {
+  const header = document.getElementById(headerId);
+  if (!header) return;
+  const imgEl = url
+    ? `<img src="${url}" onerror="this.style.display='none'" style="width:36px;height:36px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,0.08);flex-shrink:0">`
+    : `<div style="width:36px;height:36px;border-radius:4px;background:rgba(255,255,255,0.1);flex-shrink:0"></div>`;
+  header.innerHTML = `${imgEl}<span style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;color:#fff">${title}</span>`;
+  header.parentElement.style.borderTop = `3px solid ${color}`;
+}
+
+function renderTable(theadId, tbodyId, rows) {
+  const thead = document.getElementById(theadId);
+  const tbody = document.getElementById(tbodyId);
+  thead.innerHTML = `<tr>${VIEW_COLS.map(c => `<th>${c}</th>`).join("")}</tr>`;
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="${VIEW_COLS.length}">No data for this fixture</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r =>
+    `<tr>${VIEW_COLS.map(c => {
+      const v = r[c] ?? "";
+      if (c === "Outcome") return `<td class="${v === "Won" ? "won" : "lost"}">${v}</td>`;
+      return `<td>${v}</td>`;
+    }).join("")}</tr>`
+  ).join("");
+}
+
+function renderMetrics(containerId, rows, color) {
+  const el = document.getElementById(containerId);
+  const stats = [
+    { label: "Top Call",     value: modeCall(rows) },
+    { label: "Success Rate", value: successRate(rows) },
+    { label: "Defended",     value: defendedRate(rows) },
+  ];
+  el.innerHTML = stats.map(s => `
+    <div class="metric" style="border-top-color:${color}">
+      <div class="metric-label">${s.label}</div>
+      <div class="metric-value">${s.value}</div>
+    </div>
+  `).join("");
+}
+
+function renderPitch(teamRows, oppRows, teamName, oppName, teamColor, oppColor) {
+  const PITCH_LEN = 100, PITCH_WID = 70;
+  const traces = [];
+
+  for (const [rows, color, name] of [[teamRows, teamColor, teamName], [oppRows, oppColor, oppName]]) {
+    for (const [outcome, symbol] of [["Won", "circle"], ["Lost", "x"]]) {
+      const s = rows.filter(r => r.Outcome === outcome);
+      if (!s.length) continue;
+      traces.push({
+        x: s.map(r => +r["Distance to Opponent Tryline"]),
+        y: s.map(r => +r["Side"]),
+        mode: "markers",
+        cliponaxis: false,
+        type: "scatter",
+        marker: { size: 14, color, symbol, opacity: 0.92, line: { color: "white", width: 1.8 } },
+        name: `${name} — ${outcome}`,
+        customdata: s.map(r => [r.Call || "—", r.Play || "—", r.Receiver || "—"]),
+        hovertemplate: "<b>%{customdata[0]}</b><br>Distance: %{x}m<br>Play: %{customdata[1]}<br>Receiver: %{customdata[2]}<extra></extra>",
+      });
+    }
+  }
+
+  const shapes = [
+    // Pitch bg
+    { type:"rect", x0:0, y0:0, x1:PITCH_LEN, y1:PITCH_WID, fillcolor:"#3a8a3a", line:{width:0}, layer:"below" },
+    // In-goal
+    { type:"rect", x0:0, y0:0, x1:5, y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
+    { type:"rect", x0:95, y0:0, x1:100, y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
+    // Try lines
+    ...([0, 100].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"white",width:2.5}, layer:"below" }))),
+    // Dashed lines
+    ...([5, 22, 50, 78, 95].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"rgba(255,255,255,0.4)",width:1.5,dash:"dash"}, layer:"below" }))),
+  ];
+
+  const annotations = [5, 22, 50, 78, 95].map(x => ({
+    x, y: PITCH_WID + 2, text: `${x}m`, showarrow: false,
+    font: { color:"white", size:11, family:"Bebas Neue" }, xanchor:"center",
+  }));
+
+  Plotly.newPlot("pitch", traces, {
+    shapes, annotations,
+    font: { family: "Bebas Neue, sans-serif" },
+    paper_bgcolor: "#1a1a1a",
+    plot_bgcolor: "#3a8a3a",
+    legend: {
+      orientation: "h", yanchor: "bottom", y: 1.04,
+      xanchor: "center", x: 0.5,
+      bgcolor: "rgba(0,0,0,0)",
+      font: { color: "white", size: 13 },
+    },
+    xaxis: {
+      range: [-2, 102], showgrid: false, zeroline: false,
+      title: { text: "Distance to Opponent Try Line (m)", font: { color:"white", size:12 }, standoff: 12 },
+      tickfont: { color: "white" },
+    },
+    yaxis: {
+      range: [-8, 78], showgrid: false, zeroline: false,
+      tickvals: [0, 70], ticktext: ["Near", "Far"],
+      tickfont: { color: "white", size: 12 },
+    },
+    margin: { t: 20, b: 60, l: 60, r: 20 },
+    height: 400,
+  }, { responsive: true, displayModeBar: false, scrollZoom: false });
+}
+
+// ─────────────────────────────────────────────────────────
+// Main render
+// ─────────────────────────────────────────────────────────
+function render() {
+  const selectedTeam = document.getElementById("team-select").value;
+  const selectedOpp  = document.getElementById("opp-select").value;
+  const teamCfg = getCfg(selectedTeam);
+  const oppCfg  = getCfg(selectedOpp);
+
+  // Selector card colours
+  document.getElementById("team-card").style.borderLeftColor = teamCfg.color;
+  document.getElementById("opp-card").style.borderLeftColor  = oppCfg.color;
+
+  // Selector logos
+  const teamLogoWrap = document.getElementById("team-logo-wrap");
+  if (teamLogoWrap) teamLogoWrap.outerHTML = teamCfg.logo
+    ? `<img id="team-logo-wrap" src="${teamCfg.logo}" onerror="this.style.display='none'" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.06);flex-shrink:0">`
+    : `<div id="team-logo-wrap" class="no-logo"></div>`;
+
+  const oppLogoWrap = document.getElementById("opp-logo-wrap");
+  if (oppLogoWrap) oppLogoWrap.outerHTML = oppCfg.logo
+    ? `<img id="opp-logo-wrap" src="${oppCfg.logo}" onerror="this.style.display='none'" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.06);flex-shrink:0">`
+    : `<div id="opp-logo-wrap" class="no-logo"></div>`;
+
+  // Table headers
+  setTableLogo("team-table-header", teamCfg.logo, selectedTeam, teamCfg.color);
+  setTableLogo("opp-table-header",  oppCfg.logo,  selectedOpp,  oppCfg.color);
+
+  // Filter data
+  const fixture = allData.filter(r => r.Team === selectedTeam && r.Opponent === selectedOpp);
+  const teamRows = fixture.filter(r => r["Throw In"] === "Old Belvedere");
+  const oppRows  = fixture.filter(r => r["Throw In"] === selectedOpp);
+
+  // Tables
+  renderTable("team-thead", "team-tbody", teamRows);
+  renderTable("opp-thead",  "opp-tbody",  oppRows);
+
+  // Metrics
+  renderMetrics("team-metrics", teamRows, teamCfg.color);
+  renderMetrics("opp-metrics",  oppRows,  oppCfg.color);
+
+  // Pitch
+  renderPitch(teamRows, oppRows, selectedTeam, selectedOpp, teamCfg.color, oppCfg.color);
+}
+
+// ─────────────────────────────────────────────────────────
+// Populate selects
+// ─────────────────────────────────────────────────────────
+function populateSelects() {
+  const knownTeams = new Set(Object.keys(STYLERS));
+  teams     = [...new Set(allData.map(r => r.Team))    ].filter(t => knownTeams.has(t)).sort();
+  opponents = [...new Set(allData.map(r => r.Opponent))].filter(t => knownTeams.has(t)).sort();
+
+  const teamSel = document.getElementById("team-select");
+  const oppSel  = document.getElementById("opp-select");
+
+  teamSel.innerHTML = teams.map(t => `<option value="${t}">${t}</option>`).join("");
+  oppSel.innerHTML  = opponents.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  teamSel.addEventListener("change", render);
+  oppSel.addEventListener("change",  render);
+
+  render();
+}
+
+// ─────────────────────────────────────────────────────────
+// Data loading — tries Google Sheet, falls back to sample
+// ─────────────────────────────────────────────────────────
+const SAMPLE_DATA = [
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"A1",Movement:"Y",Outcome:"Won",Clean:"N",Play:"Crooked?",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":20,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"L3",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Mark McCarthy",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":40,Side:70},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"A2 Tempo Ferrari",Movement:"N",Outcome:"Lost",Clean:"N",Play:"Stolen",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":45,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"B3",Movement:"Y",Outcome:"Lost",Clean:"N",Play:"Overthrown",Receiver:"Mark McCarthy",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":60,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"L2",Movement:"N",Outcome:"Won",Clean:"N",Play:"",Receiver:"Jack Spicer",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":10,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"C1",Movement:"Y",Outcome:"Won",Clean:"N",Play:"Overthrown",Receiver:"Jack Spicer",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":57,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"B3",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Jack Spicer",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":67,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"B31",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":7,Side:0},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake B, hit A",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":78,Side:70},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake B, hit C",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":79,Side:70},
+  {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake A, hit A",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":78,Side:70},
+];
+
+function loadFromSheet() {
+  Papa.parse(SHEET_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete(results) {
+      allData = results.data;
+      populateSelects();
+    },
+    error() {
+      console.warn("Could not load Google Sheet — using sample data.");
+      allData = SAMPLE_DATA;
+      populateSelects();
+    },
+  });
+}
+
+// If SHEET_URL still has placeholder, just use sample data
+if (SHEET_URL.includes("SHEET_ID")) {
+  allData = SAMPLE_DATA;
+  populateSelects();
+} else {
+  loadFromSheet();
+}
+</script>
+</body>
+</html>
