@@ -2,34 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>OB Lineouts — Old Belvedere Juniors</title>
-
-<!-- Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-
-<!-- Plotly -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
-
-<!-- PapaParse for CSV -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-  /* ── Reset & base ───────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:       #0f0f0f;
-    --surface:  #1a1a1a;
-    --card:     #222222;
-    --border:   #2e2e2e;
-    --text:     #f0f0f0;
-    --muted:    #888;
-    --pitch:    #3a8a3a;
-    --pitch-dark: #2d7030;
-    --won:      #4caf6e;
-    --lost:     #e05555;
-    --radius:   10px;
+    --bg:           #0f0f0f;
+    --surface:      #1a1a1a;
+    --card:         #222222;
+    --border:       #2e2e2e;
+    --text:         #f0f0f0;
+    --muted:        #888;
+    --won:          #4caf6e;
+    --lost:         #e05555;
+    --radius:       10px;
     --font-display: 'Bebas Neue', sans-serif;
     --font-body:    'DM Sans', sans-serif;
   }
@@ -40,24 +31,20 @@
     font-family: var(--font-body);
     font-size: 14px;
     min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
   }
 
-  /* ── Layout ─────────────────────────────────── */
   .shell {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 32px 24px 80px;
+    padding: 24px 16px 80px;
   }
 
   /* ── Header ─────────────────────────────────── */
-  header {
-    text-align: center;
-    margin-bottom: 36px;
-    position: relative;
-  }
+  header { text-align: center; margin-bottom: 28px; }
   header h1 {
     font-family: var(--font-display);
-    font-size: clamp(36px, 6vw, 72px);
+    font-size: clamp(32px, 8vw, 72px);
     letter-spacing: 0.04em;
     line-height: 1;
     color: #fff;
@@ -65,92 +52,112 @@
   header p {
     margin-top: 6px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: clamp(10px, 2.5vw, 13px);
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
   .header-rule {
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--border), transparent);
-    margin: 28px 0;
+    margin: 20px 0;
   }
 
   /* ── Selectors ──────────────────────────────── */
   .selectors {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 32px;
+    gap: 12px;
+    margin-bottom: 24px;
   }
   .selector-card {
     background: var(--card);
     border-radius: var(--radius);
-    padding: 14px 18px;
+    padding: 12px 14px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
     border-left: 4px solid var(--border);
     transition: border-color 0.2s;
+    min-width: 0;
   }
-  .selector-card img {
-    width: 44px;
-    height: 44px;
+  .selector-logo {
+    width: 36px; height: 36px;
     object-fit: contain;
-    border-radius: 6px;
-    background: #111;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.06);
     flex-shrink: 0;
   }
-  .selector-card .no-logo {
-    width: 44px; height: 44px;
-    border-radius: 6px;
+  .no-logo {
+    width: 36px; height: 36px;
+    border-radius: 5px;
     background: var(--border);
     flex-shrink: 0;
   }
-  .selector-card label {
+  .selector-inner { flex: 1; min-width: 0; }
+  .selector-inner label {
     display: block;
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 4px;
-    font-family: var(--font-body);
+    margin-bottom: 2px;
   }
-  .selector-card select {
+  .selector-inner select {
     background: transparent;
     border: none;
     color: #fff;
     font-family: var(--font-display);
-    font-size: 22px;
-    letter-spacing: 0.04em;
+    font-size: clamp(16px, 4vw, 22px);
+    letter-spacing: 0.03em;
     cursor: pointer;
     outline: none;
     width: 100%;
     appearance: none;
     -webkit-appearance: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .selector-card select option {
+  .selector-inner select option {
     background: #1a1a1a;
     color: #fff;
     font-family: var(--font-body);
     font-size: 14px;
   }
 
-  /* ── Section divider ────────────────────────── */
-  .section-title {
-    font-family: var(--font-display);
-    font-size: 28px;
-    letter-spacing: 0.06em;
-    color: #fff;
+  /* ── Tabs (mobile only) ─────────────────────── */
+  .tab-bar {
+    display: none;
+    border-radius: var(--radius);
+    overflow: hidden;
     margin-bottom: 16px;
+    background: var(--card);
+  }
+  .tab-bar button {
+    flex: 1;
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-bar button.active {
+    color: #fff;
   }
 
-  /* ── Two-column grid ────────────────────────── */
+  /* ── Two-col ────────────────────────────────── */
   .two-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 40px;
+    gap: 20px;
+    margin-bottom: 32px;
   }
+  .panel { display: flex; flex-direction: column; gap: 10px; }
 
   /* ── Table card ─────────────────────────────── */
   .table-card {
@@ -158,46 +165,38 @@
     border-radius: var(--radius);
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border-top: 3px solid var(--border);
   }
   .table-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 10px 14px;
   }
-  .table-header img {
-    width: 36px; height: 36px;
+  .table-header .th-logo {
+    width: 32px; height: 32px;
     object-fit: contain;
     border-radius: 4px;
     background: rgba(255,255,255,0.08);
     flex-shrink: 0;
   }
-  .table-header .no-logo {
-    width: 36px; height: 36px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.1);
-    flex-shrink: 0;
-  }
   .table-header span {
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: clamp(16px, 3vw, 20px);
     letter-spacing: 0.05em;
     color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .table-wrap {
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12.5px;
-  }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
   thead th {
-    padding: 8px 12px;
+    padding: 7px 10px;
     text-align: left;
     font-family: var(--font-body);
     font-weight: 600;
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     white-space: nowrap;
@@ -209,62 +208,13 @@
   tbody tr:hover { background: rgba(255,255,255,0.04); }
   tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
   tbody td {
-    padding: 7px 12px;
+    padding: 6px 10px;
     white-space: nowrap;
     border-bottom: 1px solid rgba(255,255,255,0.04);
     color: #ccc;
   }
   .won  { color: var(--won);  font-weight: 600; }
   .lost { color: var(--lost); font-weight: 600; }
-
-  /* ── Metric cards ───────────────────────────── */
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .metric {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 14px 10px;
-    text-align: center;
-    border-top: 3px solid var(--border);
-    transition: border-color 0.2s;
-  }
-  .metric-label {
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-  .metric-value {
-    font-family: var(--font-display);
-    font-size: 28px;
-    letter-spacing: 0.02em;
-    color: #fff;
-    line-height: 1;
-  }
-
-  /* ── Pitch section ──────────────────────────── */
-  .pitch-section {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  }
-  #pitch { width: 100%; }
-
-  /* ── Loading / empty states ─────────────────── */
-  .loading {
-    text-align: center;
-    padding: 60px;
-    color: var(--muted);
-    font-family: var(--font-display);
-    font-size: 22px;
-    letter-spacing: 0.1em;
-  }
   .empty-row td {
     text-align: center;
     color: var(--muted);
@@ -272,17 +222,91 @@
     font-style: italic;
   }
 
-  /* ── Responsive ─────────────────────────────── */
-  @media (max-width: 768px) {
-    .selectors, .two-col { grid-template-columns: 1fr; }
-    .metrics { grid-template-columns: repeat(3, 1fr); }
+  /* ── Metrics ────────────────────────────────── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .metric {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 12px 6px;
+    text-align: center;
+    border-top: 3px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .metric-label {
+    font-size: 9px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .metric-value {
+    font-family: var(--font-display);
+    font-size: clamp(20px, 3.5vw, 28px);
+    letter-spacing: 0.02em;
+    color: #fff;
+    line-height: 1;
+  }
+
+  /* ── Pitch ──────────────────────────────────── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 5vw, 30px);
+    letter-spacing: 0.06em;
+    color: #fff;
+    margin-bottom: 14px;
+  }
+  .pitch-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  #pitch { width: 100%; }
+
+  /* ════════════════════════════════════════════
+     MOBILE  (≤ 640px)
+  ════════════════════════════════════════════ */
+  @media (max-width: 640px) {
+
+    .shell { padding: 16px 12px 60px; }
+
+    /* Selectors stack vertically */
+    .selectors {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    /* Show tab bar, hide desktop two-col */
+    .tab-bar { display: flex; }
+    .two-col  { display: block; }
+
+    /* Each panel hidden by default on mobile */
+    .panel { display: none; margin-bottom: 0; }
+    .panel.active { display: flex; }
+
+    .metric-value { font-size: 22px; }
+    .metric-label { font-size: 8px; }
+
+    /* Pitch slightly shorter on mobile */
+    .pitch-section { padding: 10px; }
+  }
+
+  /* ════════════════════════════════════════════
+     TABLET  (641–1023px)
+  ════════════════════════════════════════════ */
+  @media (min-width: 641px) and (max-width: 1023px) {
+    .two-col { gap: 14px; }
+    .metric-value { font-size: 22px; }
   }
 </style>
 </head>
 <body>
 <div class="shell">
 
-  <!-- Header -->
   <header>
     <h1>🏉 Old Belvedere Juniors</h1>
     <p>Lineout Analysis Dashboard</p>
@@ -291,29 +315,35 @@
 
   <!-- Selectors -->
   <div class="selectors">
-    <div class="selector-card" id="team-card" style="border-left-color:#555">
+    <div class="selector-card" id="team-card">
       <div class="no-logo" id="team-logo-wrap"></div>
-      <div style="flex:1;min-width:0">
+      <div class="selector-inner">
         <label>Team</label>
         <select id="team-select"></select>
       </div>
     </div>
-    <div class="selector-card" id="opp-card" style="border-left-color:#555">
+    <div class="selector-card" id="opp-card">
       <div class="no-logo" id="opp-logo-wrap"></div>
-      <div style="flex:1;min-width:0">
+      <div class="selector-inner">
         <label>Opponent</label>
         <select id="opp-select"></select>
       </div>
     </div>
   </div>
 
-  <!-- Tables -->
-  <div class="two-col" id="tables-section">
-    <div>
+  <!-- Mobile tab bar -->
+  <div class="tab-bar" id="tab-bar">
+    <button class="active" data-tab="team-panel" id="tab-team">Our Throw</button>
+    <button data-tab="opp-panel"  id="tab-opp">Their Throw</button>
+  </div>
+
+  <!-- Tables + metrics -->
+  <div class="two-col">
+    <div class="panel active" id="team-panel">
       <div class="table-card" id="team-table-card">
         <div class="table-header" id="team-table-header">
           <div class="no-logo"></div>
-          <span id="team-table-title">—</span>
+          <span>—</span>
         </div>
         <div class="table-wrap">
           <table><thead id="team-thead"></thead><tbody id="team-tbody"></tbody></table>
@@ -321,11 +351,12 @@
       </div>
       <div class="metrics" id="team-metrics"></div>
     </div>
-    <div>
+
+    <div class="panel" id="opp-panel">
       <div class="table-card" id="opp-table-card">
         <div class="table-header" id="opp-table-header">
           <div class="no-logo"></div>
-          <span id="opp-table-title">—</span>
+          <span>—</span>
         </div>
         <div class="table-wrap">
           <table><thead id="opp-thead"></thead><tbody id="opp-tbody"></tbody></table>
@@ -345,9 +376,9 @@
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────
-// CONFIG — paste your published Google Sheet CSV URL here
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
+// CONFIG — replace SHEET_ID with your Google Sheet ID
+// ─────────────────────────────────────────────────────
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOliBTJHN4Wt5ZOT8rJuZLqzDjTOfLpn4l4xYwUyYk31ySlFZVSyZgRIWY6bB5BvCSJKxlo575hI8L/pub?gid=1162243570&single=true&output=csv";
 
 const STYLERS = {
@@ -359,19 +390,24 @@ const STYLERS = {
 };
 
 const VIEW_COLS = ["Call","Movement","Outcome","Clean","Play","Receiver","Defended","Defender","Personnel"];
-
-// ─────────────────────────────────────────────────────────
-// State
-// ─────────────────────────────────────────────────────────
 let allData = [];
-let teams = [], opponents = [];
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
+// Mobile tabs
+// ─────────────────────────────────────────────────────
+document.querySelectorAll(".tab-bar button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+// ─────────────────────────────────────────────────────
 // Helpers
-// ─────────────────────────────────────────────────────────
-function getCfg(team) {
-  return STYLERS[team] || { logo: "", color: "#555555" };
-}
+// ─────────────────────────────────────────────────────
+const getCfg = t => STYLERS[t] || { logo: "", color: "#555" };
 
 function modeCall(rows) {
   if (!rows.length) return "N/A";
@@ -379,69 +415,81 @@ function modeCall(rows) {
   rows.forEach(r => { freq[r.Call] = (freq[r.Call] || 0) + 1; });
   return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
 }
-function successRate(rows) {
-  return rows.length ? ((rows.filter(r => r.Outcome === "Won").length / rows.length) * 100).toFixed(1) + "%" : "—";
-}
-function defendedRate(rows) {
-  return rows.length ? ((rows.filter(r => r.Defended === "Y").length / rows.length) * 100).toFixed(1) + "%" : "—";
-}
+const pct = (rows, fn) => rows.length ? (fn(rows) / rows.length * 100).toFixed(1) + "%" : "—";
+const successRate  = rows => pct(rows, r => r.filter(x => x.Outcome === "Won").length);
+const defendedRate = rows => pct(rows, r => r.filter(x => x.Defended === "Y").length);
 
-function setLogo(wrapId, url, color) {
-  const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
+function setLogo(wrapId, url, size) {
+  const el = document.getElementById(wrapId);
+  if (!el) return;
   if (url) {
-    wrap.outerHTML = `<img id="${wrapId}" src="${url}" onerror="this.style.display='none'" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.06);flex-shrink:0">`;
+    const img = document.createElement("img");
+    img.src = url; img.className = "selector-logo";
+    img.style.cssText = `width:${size}px;height:${size}px`;
+    img.onerror = () => img.replaceWith(makePlaceholder(size));
+    el.replaceWith(img);
+    img.id = wrapId;
   }
 }
 
-function setTableLogo(headerId, url, title, color) {
+function makePlaceholder(size) {
+  const d = document.createElement("div");
+  d.className = "no-logo";
+  d.style.cssText = `width:${size}px;height:${size}px`;
+  return d;
+}
+
+function setTableHeader(headerId, cardId, url, title, color) {
   const header = document.getElementById(headerId);
-  if (!header) return;
-  const imgEl = url
-    ? `<img src="${url}" onerror="this.style.display='none'" style="width:36px;height:36px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,0.08);flex-shrink:0">`
-    : `<div style="width:36px;height:36px;border-radius:4px;background:rgba(255,255,255,0.1);flex-shrink:0"></div>`;
-  header.innerHTML = `${imgEl}<span style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;color:#fff">${title}</span>`;
-  header.parentElement.style.borderTop = `3px solid ${color}`;
+  const card   = document.getElementById(cardId);
+  if (!header || !card) return;
+  card.style.borderTopColor = color;
+  const logoEl = url
+    ? `<img class="th-logo" src="${url}" onerror="this.style.display='none'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,0.08);flex-shrink:0">`
+    : `<div style="width:32px;height:32px;border-radius:4px;background:rgba(255,255,255,0.1);flex-shrink:0"></div>`;
+  header.innerHTML = `${logoEl}<span style="font-family:'Bebas Neue',sans-serif;font-size:clamp(16px,3vw,20px);letter-spacing:0.05em;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</span>`;
+}
+
+function updateTabLabels(teamName, oppName) {
+  const t = document.getElementById("tab-team");
+  const o = document.getElementById("tab-opp");
+  if (t) t.textContent = "Our Throw";
+  if (o) o.textContent = oppName;
 }
 
 function renderTable(theadId, tbodyId, rows) {
-  const thead = document.getElementById(theadId);
-  const tbody = document.getElementById(tbodyId);
-  thead.innerHTML = `<tr>${VIEW_COLS.map(c => `<th>${c}</th>`).join("")}</tr>`;
-  if (!rows.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="${VIEW_COLS.length}">No data for this fixture</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = rows.map(r =>
-    `<tr>${VIEW_COLS.map(c => {
-      const v = r[c] ?? "";
-      if (c === "Outcome") return `<td class="${v === "Won" ? "won" : "lost"}">${v}</td>`;
-      return `<td>${v}</td>`;
-    }).join("")}</tr>`
-  ).join("");
+  document.getElementById(theadId).innerHTML =
+    `<tr>${VIEW_COLS.map(c => `<th>${c}</th>`).join("")}</tr>`;
+  document.getElementById(tbodyId).innerHTML = rows.length
+    ? rows.map(r => `<tr>${VIEW_COLS.map(c => {
+        const v = r[c] ?? "";
+        return c === "Outcome"
+          ? `<td class="${v === "Won" ? "won" : "lost"}">${v}</td>`
+          : `<td>${v}</td>`;
+      }).join("")}</tr>`).join("")
+    : `<tr class="empty-row"><td colspan="${VIEW_COLS.length}">No data for this fixture</td></tr>`;
 }
 
 function renderMetrics(containerId, rows, color) {
-  const el = document.getElementById(containerId);
   const stats = [
-    { label: "Top Call",     value: modeCall(rows) },
-    { label: "Success Rate", value: successRate(rows) },
-    { label: "Defended",     value: defendedRate(rows) },
+    { label:"Top Call",     value: modeCall(rows) },
+    { label:"Success Rate", value: pct(rows, r => r.filter(x => x.Outcome === "Won").length) },
+    { label:"Defended",     value: pct(rows, r => r.filter(x => x.Defended === "Y").length) },
   ];
-  el.innerHTML = stats.map(s => `
+  document.getElementById(containerId).innerHTML = stats.map(s => `
     <div class="metric" style="border-top-color:${color}">
       <div class="metric-label">${s.label}</div>
       <div class="metric-value">${s.value}</div>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
 
 function renderPitch(teamRows, oppRows, teamName, oppName, teamColor, oppColor) {
+  const isMobile = window.innerWidth <= 640;
   const PITCH_LEN = 100, PITCH_WID = 70;
   const traces = [];
 
   for (const [rows, color, name] of [[teamRows, teamColor, teamName], [oppRows, oppColor, oppName]]) {
-    for (const [outcome, symbol] of [["Won", "circle"], ["Lost", "x"]]) {
+    for (const [outcome, symbol] of [["Won","circle"],["Lost","x"]]) {
       const s = rows.filter(r => r.Outcome === outcome);
       if (!s.length) continue;
       traces.push({
@@ -450,126 +498,115 @@ function renderPitch(teamRows, oppRows, teamName, oppName, teamColor, oppColor) 
         mode: "markers",
         cliponaxis: false,
         type: "scatter",
-        marker: { size: 14, color, symbol, opacity: 0.92, line: { color: "white", width: 1.8 } },
+        marker: { size: isMobile ? 11 : 14, color, symbol, opacity: 0.92, line: { color:"white", width: 1.5 } },
         name: `${name} — ${outcome}`,
-        customdata: s.map(r => [r.Call || "—", r.Play || "—", r.Receiver || "—"]),
-        hovertemplate: "<b>%{customdata[0]}</b><br>Distance: %{x}m<br>Play: %{customdata[1]}<br>Receiver: %{customdata[2]}<extra></extra>",
+        customdata: s.map(r => [r.Call||"—", r.Play||"—", r.Receiver||"—"]),
+        hovertemplate: "<b>%{customdata[0]}</b><br>%{x}m · %{customdata[1]}<br>%{customdata[2]}<extra></extra>",
       });
     }
   }
 
   const shapes = [
-    // Pitch bg
     { type:"rect", x0:0, y0:0, x1:PITCH_LEN, y1:PITCH_WID, fillcolor:"#3a8a3a", line:{width:0}, layer:"below" },
-    // In-goal
-    { type:"rect", x0:0, y0:0, x1:5, y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
+    { type:"rect", x0:0,  y0:0, x1:5,   y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
     { type:"rect", x0:95, y0:0, x1:100, y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
-    // Try lines
-    ...([0, 100].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"white",width:2.5}, layer:"below" }))),
-    // Dashed lines
-    ...([5, 22, 50, 78, 95].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"rgba(255,255,255,0.4)",width:1.5,dash:"dash"}, layer:"below" }))),
+    ...[0,100].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"white",width:2.5}, layer:"below" })),
+    ...[5,22,50,78,95].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"rgba(255,255,255,0.4)",width:1.5,dash:"dash"}, layer:"below" })),
   ];
 
-  const annotations = [5, 22, 50, 78, 95].map(x => ({
-    x, y: PITCH_WID + 2, text: `${x}m`, showarrow: false,
-    font: { color:"white", size:11, family:"Bebas Neue" }, xanchor:"center",
-  }));
+  const annotations = isMobile
+    ? [50].map(x => ({ x, y: PITCH_WID+2, text:`${x}m`, showarrow:false, font:{color:"white",size:10,family:"Bebas Neue"}, xanchor:"center" }))
+    : [5,22,50,78,95].map(x => ({ x, y: PITCH_WID+2, text:`${x}m`, showarrow:false, font:{color:"white",size:11,family:"Bebas Neue"}, xanchor:"center" }));
 
   Plotly.newPlot("pitch", traces, {
     shapes, annotations,
-    font: { family: "Bebas Neue, sans-serif" },
+    font: { family:"Bebas Neue, sans-serif" },
     paper_bgcolor: "#1a1a1a",
     plot_bgcolor: "#3a8a3a",
     legend: {
-      orientation: "h", yanchor: "bottom", y: 1.04,
-      xanchor: "center", x: 0.5,
-      bgcolor: "rgba(0,0,0,0)",
-      font: { color: "white", size: 13 },
+      orientation:"h", yanchor:"bottom", y: 1.05,
+      xanchor:"center", x:0.5,
+      bgcolor:"rgba(0,0,0,0)",
+      font:{ color:"white", size: isMobile ? 11 : 13 },
     },
     xaxis: {
-      range: [-2, 102], showgrid: false, zeroline: false,
-      title: { text: "Distance to Opponent Try Line (m)", font: { color:"white", size:12 }, standoff: 12 },
-      tickfont: { color: "white" },
+      range:[-2,102], showgrid:false, zeroline:false,
+      title:{ text:"Distance to Opponent Try Line (m)", font:{color:"white",size:11}, standoff:8 },
+      tickfont:{ color:"white", size: isMobile ? 10 : 12 },
     },
     yaxis: {
-      range: [-8, 78], showgrid: false, zeroline: false,
-      tickvals: [0, 70], ticktext: ["Near", "Far"],
-      tickfont: { color: "white", size: 12 },
+      range:[-8,78], showgrid:false, zeroline:false,
+      tickvals:[0,70], ticktext:["Near","Far"],
+      tickfont:{ color:"white", size: isMobile ? 10 : 12 },
     },
-    margin: { t: 20, b: 60, l: 60, r: 20 },
-    height: 400,
-  }, { responsive: true, displayModeBar: false, scrollZoom: false });
+    margin: isMobile
+      ? { t:20, b:60, l:44, r:10 }
+      : { t:20, b:60, l:60, r:20 },
+    height: isMobile ? 280 : 400,
+  }, { responsive:true, displayModeBar:false, scrollZoom:false });
 }
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
 // Main render
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
 function render() {
   const selectedTeam = document.getElementById("team-select").value;
   const selectedOpp  = document.getElementById("opp-select").value;
   const teamCfg = getCfg(selectedTeam);
   const oppCfg  = getCfg(selectedOpp);
 
-  // Selector card colours
   document.getElementById("team-card").style.borderLeftColor = teamCfg.color;
   document.getElementById("opp-card").style.borderLeftColor  = oppCfg.color;
 
-  // Selector logos
-  const teamLogoWrap = document.getElementById("team-logo-wrap");
-  if (teamLogoWrap) teamLogoWrap.outerHTML = teamCfg.logo
-    ? `<img id="team-logo-wrap" src="${teamCfg.logo}" onerror="this.style.display='none'" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.06);flex-shrink:0">`
-    : `<div id="team-logo-wrap" class="no-logo"></div>`;
+  setLogo("team-logo-wrap", teamCfg.logo, 36);
+  setLogo("opp-logo-wrap",  oppCfg.logo,  36);
 
-  const oppLogoWrap = document.getElementById("opp-logo-wrap");
-  if (oppLogoWrap) oppLogoWrap.outerHTML = oppCfg.logo
-    ? `<img id="opp-logo-wrap" src="${oppCfg.logo}" onerror="this.style.display='none'" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.06);flex-shrink:0">`
-    : `<div id="opp-logo-wrap" class="no-logo"></div>`;
+  setTableHeader("team-table-header", "team-table-card", teamCfg.logo, selectedTeam, teamCfg.color);
+  setTableHeader("opp-table-header",  "opp-table-card",  oppCfg.logo,  selectedOpp,  oppCfg.color);
 
-  // Table headers
-  setTableLogo("team-table-header", teamCfg.logo, selectedTeam, teamCfg.color);
-  setTableLogo("opp-table-header",  oppCfg.logo,  selectedOpp,  oppCfg.color);
+  updateTabLabels(selectedTeam, selectedOpp);
 
-  // Filter data
   const fixture = allData.filter(r => r.Team === selectedTeam && r.Opponent === selectedOpp);
   const teamRows = fixture.filter(r => r["Throw In"] === "Old Belvedere");
   const oppRows  = fixture.filter(r => r["Throw In"] === selectedOpp);
 
-  // Tables
   renderTable("team-thead", "team-tbody", teamRows);
   renderTable("opp-thead",  "opp-tbody",  oppRows);
-
-  // Metrics
   renderMetrics("team-metrics", teamRows, teamCfg.color);
   renderMetrics("opp-metrics",  oppRows,  oppCfg.color);
-
-  // Pitch
   renderPitch(teamRows, oppRows, selectedTeam, selectedOpp, teamCfg.color, oppCfg.color);
 }
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
+// Re-render pitch on resize (handles orientation change)
+// ─────────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(render, 200);
+});
+
+// ─────────────────────────────────────────────────────
 // Populate selects
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────
 function populateSelects() {
-  const knownTeams = new Set(Object.keys(STYLERS));
-  teams     = [...new Set(allData.map(r => r.Team))    ].filter(t => knownTeams.has(t)).sort();
-  opponents = [...new Set(allData.map(r => r.Opponent))].filter(t => knownTeams.has(t)).sort();
+  const known = new Set(Object.keys(STYLERS));
+  const teams     = [...new Set(allData.map(r => r.Team))    ].filter(t => known.has(t)).sort();
+  const opponents = [...new Set(allData.map(r => r.Opponent))].filter(t => known.has(t)).sort();
 
-  const teamSel = document.getElementById("team-select");
-  const oppSel  = document.getElementById("opp-select");
-
-  teamSel.innerHTML = teams.map(t => `<option value="${t}">${t}</option>`).join("");
-  oppSel.innerHTML  = opponents.map(t => `<option value="${t}">${t}</option>`).join("");
-
-  teamSel.addEventListener("change", render);
-  oppSel.addEventListener("change",  render);
-
+  const ts = document.getElementById("team-select");
+  const os = document.getElementById("opp-select");
+  ts.innerHTML = teams.map(t     => `<option value="${t}">${t}</option>`).join("");
+  os.innerHTML = opponents.map(t => `<option value="${t}">${t}</option>`).join("");
+  ts.addEventListener("change", render);
+  os.addEventListener("change", render);
   render();
 }
 
-// ─────────────────────────────────────────────────────────
-// Data loading — tries Google Sheet, falls back to sample
-// ─────────────────────────────────────────────────────────
-const SAMPLE_DATA = [
+// ─────────────────────────────────────────────────────
+// Sample data fallback
+// ─────────────────────────────────────────────────────
+const SAMPLE = [
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"A1",Movement:"Y",Outcome:"Won",Clean:"N",Play:"Crooked?",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":20,Side:0},
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"L3",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Mark McCarthy",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":40,Side:70},
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"A2 Tempo Ferrari",Movement:"N",Outcome:"Lost",Clean:"N",Play:"Stolen",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":45,Side:0},
@@ -583,29 +620,15 @@ const SAMPLE_DATA = [
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake A, hit A",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":78,Side:70},
 ];
 
-function loadFromSheet() {
-  Papa.parse(SHEET_URL, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete(results) {
-      allData = results.data;
-      populateSelects();
-    },
-    error() {
-      console.warn("Could not load Google Sheet — using sample data.");
-      allData = SAMPLE_DATA;
-      populateSelects();
-    },
-  });
-}
-
-// If SHEET_URL still has placeholder, just use sample data
 if (SHEET_URL.includes("SHEET_ID")) {
-  allData = SAMPLE_DATA;
+  allData = SAMPLE;
   populateSelects();
 } else {
-  loadFromSheet();
+  Papa.parse(SHEET_URL, {
+    download: true, header: true, skipEmptyLines: true,
+    complete(r) { allData = r.data; populateSelects(); },
+    error()     { allData = SAMPLE; populateSelects(); },
+  });
 }
 </script>
 </body>
