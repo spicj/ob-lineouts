@@ -1,635 +1,1841 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Power BI Data Architecture</title>
+<style>
+
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+
+background: #0d1117;
+
+color: #e6edf3;
+
+font-family: ‘IBM Plex Sans’, sans-serif;
+
+padding: 32px 32px 80px;
+
+}
+
+h1 {
+
+font-family: ‘IBM Plex Mono’, monospace;
+
+font-size: 13px; font-weight: 600;
+
+letter-spacing: 0.12em; text-transform: uppercase;
+
+color: #7d8590;
+
+margin-bottom: 36px; padding-bottom: 12px;
+
+border-bottom: 1px solid #21262d;
+
+}
+
+/* ── Card ── */
+
+.card {
+
+width: 180px;
+
+flex-shrink: 0;
+
+border-radius: 6px;
+
+padding: 11px 13px;
+
+font-size: 11px; line-height: 1.5;
+
+}
+
+.card-title {
+
+font-family: ‘IBM Plex Mono’, monospace;
+
+font-size: 10px; font-weight: 600; margin-bottom: 4px;
+
+}
+
+.card-detail { font-size: 9px; color: #8b949e; line-height: 1.6; }
+
+.card-detail span { display: block; }
+
+.tag {
+
+display: inline-block;
+
+font-family: ‘IBM Plex Mono’, monospace;
+
+font-size: 7.5px; font-weight: 600;
+
+letter-spacing: 0.07em; text-transform: uppercase;
+
+padding: 2px 5px; border-radius: 3px; margin-bottom: 6px;
+
+}
+
+.fbadge {
+
+display: inline-flex; align-items: center; gap: 3px;
+
+font-family: ‘IBM Plex Mono’, monospace; font-size: 7.5px;
+
+color: #e3b341; background: #9e6a0311;
+
+border: 1px solid #9e6a0333; border-radius: 3px;
+
+padding: 2px 5px; margin-top: 4px;
+
+}
+
+/* colour themes */
+
+.sql        { background:#0d1f2d; border:1px solid #1f6feb; }
+
+.sql        .card-title { color:#58a6ff; }
+
+.sql        .tag { background:#1f6feb22; color:#58a6ff; border:1px solid #1f6feb55; }
+
+.extract    { background:#1a1a0d; border:1px solid #9e6a03; }
+
+.extract    .card-title { color:#e3b341; }
+
+.extract    .tag { background:#9e6a0322; color:#e3b341; border:1px solid #9e6a0355; }
+
+.python     { background:#0d1f1a; border:1px solid #238636; }
+
+.python     .card-title { color:#3fb950; }
+
+.python     .tag { background:#23863622; color:#3fb950; border:1px solid #23863655; }
+
+.pq         { background:#1a0d2e; border:1px solid #6e40c9; }
+
+.pq         .card-title { color:#bc8cff; }
+
+.pq         .tag { background:#6e40c922; color:#bc8cff; border:1px solid #6e40c955; }
+
+.fact       { background:#1a100d; border:1px solid #da3633; }
+
+.fact       .card-title { color:#ff7b72; }
+
+.fact       .tag { background:#da363322; color:#ff7b72; border:1px solid #da363355; }
+
+.enrich     { background:#0d1f1a; border:1px solid #238636; }
+
+.enrich     .card-title { color:#3fb950; }
+
+.enrich     .tag { background:#23863622; color:#3fb950; border:1px solid #23863655; }
+
+.filtertbl  { background:#1a1a0d; border:1px solid #9e6a03; }
+
+.filtertbl  .card-title { color:#e3b341; }
+
+.filtertbl  .tag { background:#9e6a0322; color:#e3b341; border:1px solid #9e6a0355; }
+
+.nav        { background:#12101a; border:1px solid #8b5cf6; }
+
+.nav        .card-title { color:#a78bfa; }
+
+.nav        .tag { background:#8b5cf622; color:#a78bfa; border:1px solid #8b5cf655; }
+
+.dax        { background:#1a0d10; border:1px solid #f78166; }
+
+.dax        .card-title { color:#f78166; }
+
+.dax        .tag { background:#f7816622; color:#f78166; border:1px solid #f7816655; }
+
+/* ── A “slot” is a 180px wide column unit ── */
+
+.slot {
+
+width: 180px;
+
+flex-shrink: 0;
+
+display: flex;
+
+flex-direction: column;
+
+align-items: center;
+
+gap: 0;
+
+}
+
+/* ── A row of slots ── */
+
+.row {
+
+display: flex;
+
+flex-direction: row;
+
+align-items: flex-start;
+
+gap: 12px;
+
+}
+
+/* ── Vertical down-arrow inside a slot ── */
+
+.dn {
+
+display: flex; flex-direction: column; align-items: center;
+
+height: 20px; flex-shrink: 0;
+
+}
+
+.dn .l { width: 1px; flex: 1; background: #30363d; }
+
+.dn .t { width:0; height:0; border-left:3px solid transparent; border-right:3px solid transparent; border-top:4px solid #30363d; }
+
+/* ── Gap spacer between layers ── */
+
+.gap { height: 0; } /* filled by SVG connector */
+
+/* ── Layer label pill ── */
+
+.lbl {
+
+font-family: ‘IBM Plex Mono’, monospace;
+
+font-size: 9px; font-weight: 600;
+
+letter-spacing: 0.13em; text-transform: uppercase;
+
+padding: 5px 11px; border-radius: 3px;
+
+display: inline-flex; align-items: center; gap: 6px;
+
+margin-bottom: 14px;
+
+}
+
+/* ── Sub-label ── */
+
+.sublbl {
+
+font-family: ‘IBM Plex Mono’, monospace;
+
+font-size: 8px; font-weight: 600;
+
+letter-spacing: 0.1em; text-transform: uppercase;
+
+color: #4d5566; margin-bottom: 8px;
+
+}
+
+/* ── Horizontal rule ── */
+
+.hr { border: none; border-top: 1px solid #21262d; margin: 26px 0 20px; }
+
+/* ── Model view box ── */
+
+.model-box {
+
+position: relative;
+
+border: 1px solid #21262d; border-radius: 8px;
+
+padding: 28px 20px 24px;
+
+}
+
+.model-box-lbl {
+
+position: absolute; top: -10px; left: 18px;
+
+font-family: ‘IBM Plex Mono’, monospace;
+
+font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+
+color: #f78166; background: #0d1117; padding: 0 7px;
+
+}
+
+/* ── Legend ── */
+
+.legend { display:flex; gap:18px; margin-top:32px; padding-top:16px; border-top:1px solid #21262d; flex-wrap:wrap; }
+
+.li { display:flex; align-items:center; gap:6px; font-size:10px; color:#7d8590; }
+
+.ld { width:9px; height:9px; border-radius:2px; flex-shrink:0; }
+</style>
+</head>
+<body>
+<h1>Power BI · Data Architecture — Top-Down Flow</h1>
+<!-- ══════════════════════════════════════════
+
+     LAYER 1 · RAW SOURCES
+
+     Slot layout (left→right):
+
+       [0] Claims Direct  [1] Claims Indirect+Python  [2] Fleet Direct
+
+       [3] Fleet Indirect+Python  [4] PPR  [5] Annual Plan
+
+═══════════════════════════════════════════ -->
+<div class="lbl" style="color:#58a6ff;background:#0d1f2d;border:1px solid #1f6feb33;">
+<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="1" width="8" height="8" rx="1" stroke="#58a6ff" stroke-width="1.2"/><line x1="1" y1="3.5" x2="9" y2="3.5" stroke="#58a6ff" stroke-width="0.8"/></svg>
+
+  Layer 1 · Raw Sources
+</div>
+<div class="row">
+<!-- Slot 0: Claims Direct -->
+<div class="slot">
+<div class="card sql">
+<div class="tag">Direct · SQL</div>
+<div class="card-title">CVM_CLAIM_KPI_SUMMARY</div>
+<div class="card-detail">
+<span>🖥 EIIESESDB0002</span>
+<span>🗄 SesameProNet2</span>
+</div>
+<div class="fbadge">⚡ UW_Year &gt; 2017</div>
+</div>
+</div>
+<!-- Slot 1: Claims Indirect (Alder → Python) -->
+<div class="slot">
+<div class="card extract">
+<div class="tag">Indirect · Extract</div>
+<div class="card-title">Alder Extract</div>
+<div class="card-detail"><span>Selected countries</span></div>
+</div>
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card python">
+<div class="tag">Transform · Python</div>
+<div class="card-title">Formatting Script</div>
+<div class="card-detail"><span>Standardise to direct format</span></div>
+</div>
+</div>
+<!-- Slot 2: Fleet Direct -->
+<div class="slot">
+<div class="card sql">
+<div class="tag">Direct · SQL</div>
+<div class="card-title">CLMS_DEVELOPMENT_2</div>
+<div class="card-detail">
+<span>🖥 EISQLS0001PDCCW</span>
+<span>🗄 DW_EIIE_ANALYTICS</span>
+</div>
+<div class="fbadge">⚡ Excl. programs 4xx</div>
+</div>
+</div>
+<!-- Slot 3: Fleet Indirect (POP → Python) -->
+<div class="slot">
+<div class="card extract">
+<div class="tag">Indirect · Monthly Extract</div>
+<div class="card-title">POP Extract</div>
+<div class="card-detail"><span>Monthly pull</span></div>
+</div>
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card python">
+<div class="tag">Transform · Python</div>
+<div class="card-title">Formatting Script</div>
+<div class="card-detail"><span>Standardise to direct format</span></div>
+</div>
+</div>
+<!-- Slot 4: PPR -->
+<div class="slot">
+<div class="card sql">
+<div class="tag">Direct · SQL</div>
+<div class="card-title">tblFlatFile</div>
+<div class="card-detail">
+<span>🖥 EISQLS0001PDCCW</span>
+<span>🗄 DW_EIIE_DW</span>
+</div>
+</div>
+</div>
+<!-- Slot 5: Annual Plan -->
+<div class="slot">
+<div class="card sql">
+<div class="tag">Direct · SQL</div>
+<div class="card-title">APREF_2</div>
+<div class="card-detail">
+<span>🖥 EISQLS0001PDCCW</span>
+<span>🗄 DW_EIIE_ANALYTICS</span>
+</div>
+</div>
+</div>
+</div><!-- /row -->
+<!-- ══════════════════════════════════════════
+
+     LAYER 2 · POWER QUERY
+
+     SVG connector: slots 0+1 → Claims PQ (centre slot 0.5 = 186px from left)
+
+                    slots 2+3 → Fleet PQ  (centre slot 2.5 = 570px from left)
+
+                    slot 4    → PPR PQ    (centre = 858px)
+
+                    slot 5    → AP PQ     (centre = 1050px)
+
+     Slot width = 180px, gap = 12px → slot_n centre = n*192 + 90
+
+       Slot 0 centre = 90,  Slot 1 = 282, Slot 2 = 474, Slot 3 = 666
+
+       Slot 4 centre = 858, Slot 5 = 1050
+
+     Append midpoints: Claims = (90+282)/2=186, Fleet = (474+666)/2=570
+
+═══════════════════════════════════════════ -->
+<hr class="hr">
+<div class="lbl" style="color:#bc8cff;background:#1a0d2e;border:1px solid #6e40c933;">
+<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#bc8cff" stroke-width="1.2"/><line x1="3" y1="5" x2="7" y2="5" stroke="#bc8cff" stroke-width="1.2"/><line x1="5" y1="3" x2="5" y2="7" stroke="#bc8cff" stroke-width="1.2"/></svg>
+
+  Layer 2 · Power Query — Transform &amp; Append
+</div>
+<!-- SVG connectors from Layer 1 bottoms down to PQ nodes -->
+<svg width="1140" height="36" viewBox="0 0 1140 36" fill="none" style="display:block; margin-bottom:0;">
+<!-- Claims append: slot0=90, slot1=282, mid=186 -->
+<line x1="90"  y1="0" x2="90"  y2="18" stroke="#6e40c9" stroke-width="1.5"/>
+<line x1="282" y1="0" x2="282" y2="18" stroke="#6e40c9" stroke-width="1.5"/>
+<line x1="90"  y1="18" x2="282" y2="18" stroke="#6e40c9" stroke-width="1.5"/>
+<line x1="186" y1="18" x2="186" y2="32" stroke="#6e40c9" stroke-width="1.5"/>
+<polygon points="182,29 190,29 186,36" fill="#6e40c9"/>
+<text x="116" y="13" font-family="IBM Plex Mono,monospace" font-size="7" fill="#6e40c9" letter-spacing="1">APPEND</text>
+<!-- Fleet append: slot2=474, slot3=666, mid=570 -->
+<line x1="474" y1="0" x2="474" y2="18" stroke="#6e40c9" stroke-width="1.5"/>
+<line x1="666" y1="0" x2="666" y2="18" stroke="#6e40c9" stroke-width="1.5"/>
+<line x1="474" y1="18" x2="666" y2="18" stroke="#6e40c9" stroke-width="1.5"/>
+<line x1="570" y1="18" x2="570" y2="32" stroke="#6e40c9" stroke-width="1.5"/>
+<polygon points="566,29 574,29 570,36" fill="#6e40c9"/>
+<text x="500" y="13" font-family="IBM Plex Mono,monospace" font-size="7" fill="#6e40c9" letter-spacing="1">APPEND</text>
+<!-- PPR direct: slot4=858 -->
+<line x1="858" y1="0" x2="858" y2="32" stroke="#30363d" stroke-width="1.5"/>
+<polygon points="854,29 862,29 858,36" fill="#30363d"/>
+<!-- Annual Plan direct: slot5=1050 -->
+<line x1="1050" y1="0" x2="1050" y2="32" stroke="#30363d" stroke-width="1.5"/>
+<polygon points="1046,29 1054,29 1050,36" fill="#30363d"/>
+</svg>
+<!-- PQ nodes positioned absolutely to match SVG arrow tips -->
+<!-- Claims mid=186 → card left = 186-90=96 -->
+<!-- Fleet  mid=570 → card left = 570-90=480 -->
+<!-- PPR    ctr=858 → card left = 858-90=768 -->
+<!-- AP     ctr=1050→ card left = 1050-90=960 -->
+<div style="position:relative; width:1140px; height:74px;">
+<div style="position:absolute; left:96px; top:0; width:180px;">
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">Claims Source</div>
+<div class="card-detail"><span>Direct + Indirect appended</span></div>
+</div>
+</div>
+<div style="position:absolute; left:480px; top:0; width:180px;">
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">Fleet &amp; Premium Source</div>
+<div class="card-detail"><span>Direct + Indirect appended</span></div>
+</div>
+</div>
+<div style="position:absolute; left:768px; top:0; width:180px;">
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">PPR Source</div>
+<div class="card-detail"><span>Direct load</span></div>
+</div>
+</div>
+<div style="position:absolute; left:960px; top:0; width:180px;">
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">Annual Plan Source</div>
+<div class="card-detail"><span>Direct load</span></div>
+</div>
+</div>
+</div>
+<!-- ══════════════════════════════════════════
+
+     LAYER 3 · SECONDARY SOURCES
+
+═══════════════════════════════════════════ -->
+<hr class="hr">
+<div class="lbl" style="color:#3fb950;background:#0d1f1a;border:1px solid #23863633;">
+<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#3fb950" stroke-width="1.2"/><line x1="5" y1="2.5" x2="5" y2="5.5" stroke="#3fb950" stroke-width="1.2" stroke-linecap="round"/><circle cx="5" cy="7" r="0.7" fill="#3fb950"/></svg>
+
+  Layer 3 · Secondary Sources — Enrichment &amp; Filter
+</div>
+<div class="row">
+<!-- SE_Programme -->
+<div class="slot">
+<div class="card sql">
+<div class="tag">SQL Server</div>
+<div class="card-title">SE_Programme</div>
+<div class="card-detail">
+<span>🖥 EIIESESDB0002</span>
+<span>🗄 SesameProNet2</span>
+</div>
+</div>
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">SE_Programme</div>
+<div class="card-detail"><span>Direct load</span></div>
+</div>
+</div>
+<!-- IXOL PPR -->
+<div class="slot">
+<div class="card extract">
+<div class="tag">Excel File</div>
+<div class="card-title">IXOL PPR</div>
+<div class="card-detail"><span>📁 Location: TBC</span></div>
+</div>
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">IXOL PPR</div>
+<div class="card-detail"><span>Direct load</span></div>
+</div>
+</div>
+<!-- Program Overview -->
+<div class="slot">
+<div class="card extract">
+<div class="tag">Excel File · Filter</div>
+<div class="card-title">Program Overview</div>
+<div class="card-detail"><span>📁 Location: TBC</span></div>
+</div>
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card pq">
+<div class="tag">Power Query</div>
+<div class="card-title">Program Overview</div>
+<div class="card-detail"><span>Excl. insignificant programs</span></div>
+</div>
+</div>
+</div>
+<!-- ══════════════════════════════════════════
+
+     LAYER 4 · POWER BI MODEL TABLES
+
+═══════════════════════════════════════════ -->
+<hr class="hr">
+<div class="lbl" style="color:#ff7b72;background:#1a100d;border:1px solid #da363333;">
+<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="3" width="8" height="6" rx="1" stroke="#ff7b72" stroke-width="1.2"/><path d="M3.5 3V2.5a1.5 1.5 0 0 1 3 0V3" stroke="#ff7b72" stroke-width="1.2" stroke-linecap="round"/></svg>
+
+  Layer 4 · Power BI Model Tables
+</div>
+<!-- Fact tables -->
+<div class="sublbl">Fact Tables</div>
+<div class="row" style="margin-bottom:20px;">
+<div class="slot">
+<div class="card fact">
+<div class="tag">Fact Table</div>
+<div class="card-title">Claims</div>
+<div class="card-detail"><span>Direct + Indirect</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card fact">
+<div class="tag">Fact Table</div>
+<div class="card-title">Fleet &amp; Premium</div>
+<div class="card-detail"><span>Direct + Indirect</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card fact">
+<div class="tag">Fact Table</div>
+<div class="card-title">PPR</div>
+<div class="card-detail"><span>Flat file PPR data</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card fact">
+<div class="tag">Fact Table</div>
+<div class="card-title">Annual Plan</div>
+<div class="card-detail"><span>Budget / plan reference</span></div>
+</div>
+</div>
+</div>
+<!-- Reference & filter tables -->
+<div class="sublbl">Reference &amp; Filter Tables</div>
+<div class="row" style="margin-bottom:20px;">
+<div class="slot">
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card enrich">
+<div class="tag">Enrichment</div>
+<div class="card-title">SE_Programme</div>
+<div class="card-detail"><span>Programme attribute lookup</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card enrich">
+<div class="tag">Enrichment</div>
+<div class="card-title">IXOL PPR</div>
+<div class="card-detail"><span>IXOL programme reference</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="dn"><div class="l"></div><div class="t"></div></div>
+<div class="card filtertbl">
+<div class="tag">Filter</div>
+<div class="card-title">Program Overview</div>
+<div class="card-detail"><span>Claims team significance filter</span></div>
+</div>
+</div>
+</div>
+<!-- Navigation / feature tables -->
+<div class="sublbl">Navigation &amp; Feature Tables — No model connections</div>
+<div class="row">
+<div class="slot">
+<div class="card nav">
+<div class="tag">Feature Table</div>
+<div class="card-title">Currency Switcher</div>
+<div class="card-detail"><span>Visual parameter control</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card nav">
+<div class="tag">Feature Table</div>
+<div class="card-title">Incurred Layers</div>
+<div class="card-detail"><span>Visual parameter control</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card nav">
+<div class="tag">Feature Table</div>
+<div class="card-title">Parameter Development</div>
+<div class="card-detail"><span>Visual parameter control</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card nav">
+<div class="tag">Feature Table</div>
+<div class="card-title">Management Parameters</div>
+<div class="card-detail"><span>Visual parameter control</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card nav">
+<div class="tag">Feature Table</div>
+<div class="card-title">Ratio Parameters</div>
+<div class="card-detail"><span>Visual parameter control</span></div>
+</div>
+</div>
+<div class="slot">
+<div class="card nav">
+<div class="tag">Feature Table</div>
+<div class="card-title">Sort Table</div>
+<div class="card-detail"><span>Visual sort order control</span></div>
+</div>
+</div>
+</div>
+<!-- ══════════════════════════════════════════
+
+     LAYER 5 · BRIDGE TABLE + MODEL VIEW
+
+═══════════════════════════════════════════ -->
+<hr class="hr">
+<div class="lbl" style="color:#f78166;background:#1a0d10;border:1px solid #f7816633;">
+<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="2" cy="5" r="1.5" stroke="#f78166" stroke-width="1"/><circle cx="8" cy="2" r="1.5" stroke="#f78166" stroke-width="1"/><circle cx="8" cy="8" r="1.5" stroke="#f78166" stroke-width="1"/><line x1="3.4" y1="4.3" x2="6.6" y2="2.7" stroke="#f78166" stroke-width="1"/><line x1="3.4" y1="5.7" x2="6.6" y2="7.3" stroke="#f78166" stroke-width="1"/></svg>
+
+  Layer 5 · Model Relationships — BridgeTable
+</div>
+<div class="model-box">
+<div class="model-box-lbl">Power BI Model View</div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+
+```
+<!-- Fact tables top -->
+<div style="display:flex;gap:14px;">
+<div class="card fact" style="width:155px;">
+<div class="tag">Fact</div>
+<div class="card-title">Claims</div>
+<div class="card-detail"><span>Reporting Date</span><span>Program</span></div>
+</div>
+<div class="card fact" style="width:155px;">
+<div class="tag">Fact</div>
+<div class="card-title">Fleet &amp; Premium</div>
+<div class="card-detail"><span>Program</span><span>UW_Year</span></div>
+</div>
+<div class="card fact" style="width:155px;">
+<div class="tag">Fact</div>
+<div class="card-title">PPR</div>
+<div class="card-detail"><span>Join key: TBC</span></div>
+</div>
+<div class="card fact" style="width:155px;">
+<div class="tag">Fact</div>
+<div class="card-title">Annual Plan</div>
+<div class="card-detail"><span>Join key: TBC</span></div>
+</div>
+</div>
+<!-- Lines fact → bridge (4×155px cards + 3×14px gaps = 662px, centred in ~820px → offset=79) -->
+<!-- card centres: 79+77=156, 156+169=325, 325+169=494, 494+169=663. Bridge centre=(156+663)/2=409 -->
+<svg width="820" height="44" viewBox="0 0 820 44" fill="none" style="display:block;">
+<line x1="156" y1="0" x2="156" y2="22" stroke="#f78166" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="325" y1="0" x2="325" y2="22" stroke="#f78166" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="494" y1="0" x2="494" y2="22" stroke="#f78166" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="663" y1="0" x2="663" y2="22" stroke="#f78166" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="156" y1="22" x2="663" y2="22" stroke="#f78166" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="409" y1="22" x2="409" y2="38" stroke="#f78166" stroke-width="2"/>
+<polygon points="404,35 414,35 409,44" fill="#f78166"/>
+</svg>
+<!-- BridgeTable -->
+<div class="card dax" style="width:300px;text-align:center;">
+<div class="tag" style="display:block;text-align:center;">DAX · Calculated Dimension</div>
+<div class="card-title" style="text-align:center;font-size:13px;margin-bottom:6px;">BridgeTable</div>
+<div class="card-detail" style="text-align:center;">
+<span>CROSSJOIN( Program × UW_Year × Reporting Date )</span>
+<span style="margin-top:3px;display:block;">Complete key combinations · 2017–2026</span>
+<span>Prevents cross-filter bleed between fact tables</span>
+</div>
+</div>
+<!-- Lines bridge → ref tables (3×155px + 2×14px = 493px, centred in 820 → offset=163) -->
+<!-- card centres: 163+77=240, 240+169=409, 409+169=578 -->
+<svg width="820" height="44" viewBox="0 0 820 44" fill="none" style="display:block;">
+<line x1="409" y1="0"  x2="409" y2="22" stroke="#3fb950" stroke-width="2"/>
+<line x1="240" y1="22" x2="578" y2="22" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="240" y1="22" x2="240" y2="38" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="409" y1="22" x2="409" y2="38" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2"/>
+<line x1="578" y1="22" x2="578" y2="38" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2"/>
+<polygon points="235,35 245,35 240,44" fill="#3fb950"/>
+<polygon points="404,35 414,35 409,44" fill="#3fb950"/>
+<polygon points="573,35 583,35 578,44" fill="#3fb950"/>
+</svg>
+<!-- Ref / filter tables -->
+<div style="display:flex;gap:14px;">
+<div class="card enrich" style="width:155px;">
+<div class="tag">Enrichment</div>
+<div class="card-title">SE_Programme</div>
+<div class="card-detail"><span>Programme attributes</span></div>
+</div>
+<div class="card enrich" style="width:155px;">
+<div class="tag">Enrichment</div>
+<div class="card-title">IXOL PPR</div>
+<div class="card-detail"><span>IXOL reference</span></div>
+</div>
+<div class="card filtertbl" style="width:155px;">
+<div class="tag">Filter</div>
+<div class="card-title">Program Overview</div>
+<div class="card-detail"><span>Significance filter</span></div>
+</div>
+</div>
+<!-- Divider before nav tables -->
+<div style="width:100%;height:1px;background:#21262d;margin:22px 0 16px;"></div>
+<div style="align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#4d5566;margin-bottom:10px;">Navigation &amp; Feature Tables — No model connections</div>
+<div style="display:grid;grid-template-columns:repeat(3,148px);gap:8px;">
+<div class="card nav" style="width:148px;"><div class="tag">Feature</div><div class="card-title">Currency Switcher</div></div>
+<div class="card nav" style="width:148px;"><div class="tag">Feature</div><div class="card-title">Incurred Layers</div></div>
+<div class="card nav" style="width:148px;"><div class="tag">Feature</div><div class="card-title">Parameter Development</div></div>
+<div class="card nav" style="width:148px;"><div class="tag">Feature</div><div class="card-title">Management Parameters</div></div>
+<div class="card nav" style="width:148px;"><div class="tag">Feature</div><div class="card-title">Ratio Parameters</div></div>
+<div class="card nav" style="width:148px;"><div class="tag">Feature</div><div class="card-title">Sort Table</div></div>
+</div>
+
+```
+</div>
+</div>
+<!-- ══ LEGEND ══ -->
+<div class="legend">
+<div class="li"><div class="ld" style="background:#1f6feb;"></div> SQL Server source</div>
+<div class="li"><div class="ld" style="background:#9e6a03;"></div> Bulk / Excel extract</div>
+<div class="li"><div class="ld" style="background:#238636;"></div> Python transformation</div>
+<div class="li"><div class="ld" style="background:#6e40c9;"></div> Power Query (append)</div>
+<div class="li"><div class="ld" style="background:#da3633;"></div> Fact table</div>
+<div class="li"><div class="ld" style="background:#238636;"></div> Enrichment table</div>
+<div class="li"><div class="ld" style="background:#9e6a03;"></div> Filter table</div>
+<div class="li"><div class="ld" style="background:#8b5cf6;"></div> Navigation / feature table</div>
+<div class="li"><div class="ld" style="background:#f78166;"></div> DAX calculated dimension</div>
+</div>
+</body>
+</html>
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>OB Lineouts — Old Belvedere Juniors</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
 <style>
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
+
     --bg:           #0f0f0f;
+
     --surface:      #1a1a1a;
+
     --card:         #222222;
+
     --border:       #2e2e2e;
+
     --text:         #f0f0f0;
+
     --muted:        #888;
+
     --won:          #4caf6e;
+
     --lost:         #e05555;
+
     --radius:       10px;
+
     --font-display: 'Bebas Neue', sans-serif;
+
     --font-body:    'DM Sans', sans-serif;
+
   }
 
   html, body {
+
     background: var(--bg);
+
     color: var(--text);
+
     font-family: var(--font-body);
+
     font-size: 14px;
+
     min-height: 100vh;
+
     -webkit-text-size-adjust: 100%;
+
   }
 
   .shell {
+
     max-width: 1400px;
+
     margin: 0 auto;
+
     padding: 24px 16px 80px;
+
   }
 
   /* ── Header ─────────────────────────────────── */
+
   header { text-align: center; margin-bottom: 28px; }
+
   header h1 {
+
     font-family: var(--font-display);
+
     font-size: clamp(32px, 8vw, 72px);
+
     letter-spacing: 0.04em;
+
     line-height: 1;
+
     color: #fff;
-  }
-  header p {
-    margin-top: 6px;
-    color: var(--muted);
-    font-size: clamp(10px, 2.5vw, 13px);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .header-rule {
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
-    margin: 20px 0;
+
   }
 
-  /* ── Selectors ──────────────────────────────── */
-  .selectors {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .selector-card {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-left: 4px solid var(--border);
-    transition: border-color 0.2s;
-    min-width: 0;
-  }
-  .selector-logo {
-    width: 36px; height: 36px;
-    object-fit: contain;
-    border-radius: 5px;
-    background: rgba(255,255,255,0.06);
-    flex-shrink: 0;
-  }
-  .no-logo {
-    width: 36px; height: 36px;
-    border-radius: 5px;
-    background: var(--border);
-    flex-shrink: 0;
-  }
-  .selector-inner { flex: 1; min-width: 0; }
-  .selector-inner label {
-    display: block;
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+  header p {
+
+    margin-top: 6px;
+
     color: var(--muted);
+
+    font-size: clamp(10px, 2.5vw, 13px);
+
+    letter-spacing: 0.12em;
+
+    text-transform: uppercase;
+
+  }
+
+  .header-rule {
+
+    height: 2px;
+
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+
+    margin: 20px 0;
+
+  }
+
+  /* ── Unified grid: selector + table share the same column ── */
+
+  /* .selectors is now REMOVED — selectors live inside .main-grid */
+
+  .selectors { display: contents; } /* dissolve into parent grid */
+
+  .selector-card {
+
+    background: var(--card);
+
+    border-radius: var(--radius);
+
+    padding: 12px 14px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    border-left: 4px solid var(--border);
+
+    transition: border-color 0.2s;
+
+    min-width: 0;
+
+  }
+
+  .selector-logo {
+
+    width: 36px; height: 36px;
+
+    object-fit: contain;
+
+    border-radius: 5px;
+
+    background: rgba(255,255,255,0.06);
+
+    flex-shrink: 0;
+
+  }
+
+  .no-logo {
+
+    width: 36px; height: 36px;
+
+    border-radius: 5px;
+
+    background: var(--border);
+
+    flex-shrink: 0;
+
+  }
+
+  .selector-inner { flex: 1; min-width: 0; }
+
+  .selector-inner label {
+
+    display: block;
+
+    font-size: 9px;
+
+    letter-spacing: 0.1em;
+
+    text-transform: uppercase;
+
+    color: var(--muted);
+
     margin-bottom: 2px;
+
   }
+
   .selector-inner select {
+
     background: transparent;
+
     border: none;
+
     color: #fff;
+
     font-family: var(--font-display);
+
     font-size: clamp(16px, 4vw, 22px);
+
     letter-spacing: 0.03em;
+
     cursor: pointer;
+
     outline: none;
+
     width: 100%;
+
     appearance: none;
+
     -webkit-appearance: none;
+
     white-space: nowrap;
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
   }
+
   .selector-inner select option {
+
     background: #1a1a1a;
+
     color: #fff;
+
     font-family: var(--font-body);
+
     font-size: 14px;
+
   }
 
   /* ── Tabs (mobile only) ─────────────────────── */
+
   .tab-bar {
+
     display: none;
+
     border-radius: var(--radius);
+
     overflow: hidden;
+
     margin-bottom: 16px;
+
     background: var(--card);
-  }
-  .tab-bar button {
-    flex: 1;
-    padding: 12px 8px;
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    font-family: var(--font-display);
-    font-size: 16px;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    border-bottom: 3px solid transparent;
-  }
-  .tab-bar button.active {
-    color: #fff;
+
   }
 
-  /* ── Two-col ────────────────────────────────── */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 32px;
+  .tab-bar button {
+
+    flex: 1;
+
+    padding: 12px 8px;
+
+    background: transparent;
+
+    border: none;
+
+    color: var(--muted);
+
+    font-family: var(--font-display);
+
+    font-size: 16px;
+
+    letter-spacing: 0.05em;
+
+    cursor: pointer;
+
+    transition: background 0.15s, color 0.15s;
+
+    border-bottom: 3px solid transparent;
+
   }
-  .panel { display: flex; flex-direction: column; gap: 10px; }
+
+  .tab-bar button.active {
+
+    color: #fff;
+
+  }
+
+  /* ── Main grid: 2 columns, selectors on row 1, tables on row 2 ── */
+
+  .main-grid {
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    grid-template-rows: auto auto;
+
+    column-gap: 20px;
+
+    row-gap: 12px;
+
+    margin-bottom: 32px;
+
+  }
+
+  /* Selectors sit in row 1 */
+
+  .selector-card { grid-row: 1; }
+
+  /* Panels sit in row 2 */
+
+  .panel { grid-row: 2; display: flex; flex-direction: column; gap: 10px; }
 
   /* ── Table card ─────────────────────────────── */
+
   .table-card {
+
     background: var(--card);
+
     border-radius: var(--radius);
+
     overflow: hidden;
+
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+
     border-top: 3px solid var(--border);
+
   }
+
   .table-header {
+
     display: flex;
+
     align-items: center;
+
     gap: 10px;
+
     padding: 10px 14px;
+
   }
+
   .table-header .th-logo {
+
     width: 32px; height: 32px;
+
     object-fit: contain;
+
     border-radius: 4px;
+
     background: rgba(255,255,255,0.08);
+
     flex-shrink: 0;
+
   }
+
   .table-header span {
+
     font-family: var(--font-display);
+
     font-size: clamp(16px, 3vw, 20px);
+
     letter-spacing: 0.05em;
+
     color: #fff;
+
     white-space: nowrap;
+
     overflow: hidden;
+
     text-overflow: ellipsis;
+
   }
+
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
   thead th {
+
     padding: 7px 10px;
+
     text-align: left;
+
     font-family: var(--font-body);
+
     font-weight: 600;
+
     font-size: 10px;
+
     letter-spacing: 0.06em;
+
     text-transform: uppercase;
+
     white-space: nowrap;
+
     background: rgba(255,255,255,0.04);
+
     color: var(--muted);
+
     border-bottom: 1px solid var(--border);
+
   }
+
   tbody tr { transition: background 0.1s; }
+
   tbody tr:hover { background: rgba(255,255,255,0.04); }
+
   tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+
   tbody td {
+
     padding: 6px 10px;
+
     white-space: nowrap;
+
     border-bottom: 1px solid rgba(255,255,255,0.04);
+
     color: #ccc;
+
   }
+
   .won  { color: var(--won);  font-weight: 600; }
+
   .lost { color: var(--lost); font-weight: 600; }
+
   .empty-row td {
+
     text-align: center;
+
     color: var(--muted);
+
     padding: 24px !important;
+
     font-style: italic;
+
   }
 
   /* ── Metrics ────────────────────────────────── */
+
   .metrics {
+
     display: grid;
+
     grid-template-columns: repeat(3, 1fr);
+
     gap: 8px;
+
   }
+
   .metric {
+
     background: var(--surface);
+
     border-radius: var(--radius);
+
     padding: 12px 6px;
+
     text-align: center;
+
     border-top: 3px solid var(--border);
+
     transition: border-color 0.2s;
+
   }
+
   .metric-label {
+
     font-size: 9px;
+
     letter-spacing: 0.07em;
+
     text-transform: uppercase;
+
     color: var(--muted);
+
     margin-bottom: 4px;
+
   }
+
   .metric-value {
+
     font-family: var(--font-display);
+
     font-size: clamp(20px, 3.5vw, 28px);
+
     letter-spacing: 0.02em;
+
     color: #fff;
+
     line-height: 1;
+
   }
 
   /* ── Pitch ──────────────────────────────────── */
+
   .section-title {
+
     font-family: var(--font-display);
+
     font-size: clamp(22px, 5vw, 30px);
+
     letter-spacing: 0.06em;
+
     color: #fff;
+
     margin-bottom: 14px;
+
   }
+
   .pitch-section {
+
     background: var(--surface);
+
     border-radius: var(--radius);
+
     padding: 16px;
+
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+
   }
+
   #pitch { width: 100%; }
 
   /* ════════════════════════════════════════════
+
      MOBILE  (≤ 640px)
+
   ════════════════════════════════════════════ */
+
   @media (max-width: 640px) {
 
     .shell { padding: 16px 12px 60px; }
 
-    /* Selectors stack vertically */
-    .selectors {
+    /* Grid collapses: selectors stack, then panels below */
+
+    .main-grid {
+
       grid-template-columns: 1fr;
-      gap: 10px;
+
+      grid-template-rows: auto auto auto auto;
+
+      row-gap: 10px;
+
     }
 
-    /* Show tab bar, hide desktop two-col */
-    .tab-bar { display: flex; }
-    .two-col  { display: block; }
+    /* Both selectors occupy their natural column-1 position */
 
-    /* Each panel hidden by default on mobile */
-    .panel { display: none; margin-bottom: 0; }
+    .selector-card { grid-row: auto; }
+
+    /* Show tab bar */
+
+    .tab-bar { display: flex; }
+
+    /* Panels: hidden by default, shown when active */
+
+    .panel { grid-row: auto; display: none; }
+
     .panel.active { display: flex; }
 
     .metric-value { font-size: 22px; }
+
     .metric-label { font-size: 8px; }
 
-    /* Pitch slightly shorter on mobile */
     .pitch-section { padding: 10px; }
+
   }
 
   /* ════════════════════════════════════════════
+
      TABLET  (641–1023px)
+
   ════════════════════════════════════════════ */
+
   @media (min-width: 641px) and (max-width: 1023px) {
-    .two-col { gap: 14px; }
+
+    .main-grid { column-gap: 14px; }
+
     .metric-value { font-size: 22px; }
+
   }
 </style>
 </head>
 <body>
 <div class="shell">
+<header>
+<h1>🏉 Old Belvedere Juniors</h1>
+<p>Lineout Analysis Dashboard</p>
+</header>
+<div class="header-rule"></div>
+<!-- Mobile tab bar -->
+<div class="tab-bar" id="tab-bar">
+<button class="active" data-tab="team-panel" id="tab-team">Our Throw</button>
+<button data-tab="opp-panel" id="tab-opp">Their Throw</button>
+</div>
+<!-- Unified grid: selectors (row 1) + tables (row 2) share the same columns -->
+<div class="main-grid">
 
-  <header>
-    <h1>🏉 Old Belvedere Juniors</h1>
-    <p>Lineout Analysis Dashboard</p>
-  </header>
-  <div class="header-rule"></div>
-
-  <!-- Selectors -->
-  <div class="selectors">
-    <div class="selector-card" id="team-card">
-      <div class="no-logo" id="team-logo-wrap"></div>
-      <div class="selector-inner">
-        <label>Team</label>
-        <select id="team-select"></select>
-      </div>
-    </div>
-    <div class="selector-card" id="opp-card">
-      <div class="no-logo" id="opp-logo-wrap"></div>
-      <div class="selector-inner">
-        <label>Opponent</label>
-        <select id="opp-select"></select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mobile tab bar -->
-  <div class="tab-bar" id="tab-bar">
-    <button class="active" data-tab="team-panel" id="tab-team">Our Throw</button>
-    <button data-tab="opp-panel"  id="tab-opp">Their Throw</button>
-  </div>
-
-  <!-- Tables + metrics -->
-  <div class="two-col">
-    <div class="panel active" id="team-panel">
-      <div class="table-card" id="team-table-card">
-        <div class="table-header" id="team-table-header">
-          <div class="no-logo"></div>
-          <span>—</span>
-        </div>
-        <div class="table-wrap">
-          <table><thead id="team-thead"></thead><tbody id="team-tbody"></tbody></table>
-        </div>
-      </div>
-      <div class="metrics" id="team-metrics"></div>
-    </div>
-
-    <div class="panel" id="opp-panel">
-      <div class="table-card" id="opp-table-card">
-        <div class="table-header" id="opp-table-header">
-          <div class="no-logo"></div>
-          <span>—</span>
-        </div>
-        <div class="table-wrap">
-          <table><thead id="opp-thead"></thead><tbody id="opp-tbody"></tbody></table>
-        </div>
-      </div>
-      <div class="metrics" id="opp-metrics"></div>
-    </div>
-  </div>
-
-  <!-- Pitch -->
-  <div class="header-rule"></div>
-  <p class="section-title">Lineout Positions</p>
-  <div class="pitch-section">
-    <div id="pitch"></div>
-  </div>
-
+```
+<!-- Row 1: selectors -->
+<div class="selector-card" id="team-card">
+<div class="no-logo" id="team-logo-wrap"></div>
+<div class="selector-inner">
+<label>Team</label>
+<select id="team-select"></select>
+</div>
+</div>
+<div class="selector-card" id="opp-card">
+<div class="no-logo" id="opp-logo-wrap"></div>
+<div class="selector-inner">
+<label>Opponent</label>
+<select id="opp-select"></select>
+</div>
+</div>
+<!-- Row 2: tables + metrics -->
+<div class="panel active" id="team-panel">
+<div class="table-card" id="team-table-card">
+<div class="table-header" id="team-table-header">
+<div class="no-logo"></div>
+<span>—</span>
+</div>
+<div class="table-wrap">
+<table><thead id="team-thead"></thead><tbody id="team-tbody"></tbody></table>
+</div>
+</div>
+<div class="metrics" id="team-metrics"></div>
+</div>
+<div class="panel" id="opp-panel">
+<div class="table-card" id="opp-table-card">
+<div class="table-header" id="opp-table-header">
+<div class="no-logo"></div>
+<span>—</span>
+</div>
+<div class="table-wrap">
+<table><thead id="opp-thead"></thead><tbody id="opp-tbody"></tbody></table>
+</div>
+</div>
+<div class="metrics" id="opp-metrics"></div>
 </div>
 
+```
+</div>
+<!-- Pitch -->
+<div class="header-rule"></div>
+<p class="section-title">Lineout Positions</p>
+<div class="pitch-section">
+<div id="pitch"></div>
+</div>
+</div>
 <script>
+
 // ─────────────────────────────────────────────────────
+
 // CONFIG — replace SHEET_ID with your Google Sheet ID
+
 // ─────────────────────────────────────────────────────
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOliBTJHN4Wt5ZOT8rJuZLqzDjTOfLpn4l4xYwUyYk31ySlFZVSyZgRIWY6bB5BvCSJKxlo575hI8L/pub?gid=1162243570&single=true&output=csv";
+
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/SHEET_ID/export?format=csv&gid=0";
 
 const STYLERS = {
+
   "Old Belvedere J2": { logo: "https://www.thefrontrowunion.com/wp-content/uploads/2020/09/Old-Belvedere-Crest.png", color: "#000000" },
+
   "Old Wesley":       { logo: "https://www.oldwesley.ie/wp-content/uploads/2019/11/Old-Wesley-Crest.png",           color: "#FF0000" },
+
   "St.Mary's":        { logo: "https://www.oldwesley.ie/wp-content/uploads/2019/11/St-Marys-RFC-Crest.png",         color: "#307FC6" },
+
   "Terenure":         { logo: "https://alchetron.com/cdn/terenure-college-rfc-32198669-fd32-44f2-bf6e-03443236188-resize-750.jpeg", color: "#ba55d3" },
+
   "Naas":             { logo: "https://clubs.clubforce.com/wp/wp-content/uploads/2018/10/Naas-RFC-Logo-b.jpg",      color: "#3F9925" },
+
 };
 
 const VIEW_COLS = ["Call","Movement","Outcome","Clean","Play","Receiver","Defended","Defender","Personnel"];
+
 let allData = [];
 
 // ─────────────────────────────────────────────────────
+
 // Mobile tabs
+
 // ─────────────────────────────────────────────────────
+
 document.querySelectorAll(".tab-bar button").forEach(btn => {
+
   btn.addEventListener("click", () => {
+
     document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
+
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+
     btn.classList.add("active");
+
     document.getElementById(btn.dataset.tab).classList.add("active");
+
   });
+
 });
 
 // ─────────────────────────────────────────────────────
+
 // Helpers
+
 // ─────────────────────────────────────────────────────
+
 const getCfg = t => STYLERS[t] || { logo: "", color: "#555" };
 
 function modeCall(rows) {
+
   if (!rows.length) return "N/A";
+
   const freq = {};
+
   rows.forEach(r => { freq[r.Call] = (freq[r.Call] || 0) + 1; });
+
   return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+
 }
+
 const pct = (rows, fn) => rows.length ? (fn(rows) / rows.length * 100).toFixed(1) + "%" : "—";
+
 const successRate  = rows => pct(rows, r => r.filter(x => x.Outcome === "Won").length);
+
 const defendedRate = rows => pct(rows, r => r.filter(x => x.Defended === "Y").length);
 
 function setLogo(wrapId, url, size) {
+
   const el = document.getElementById(wrapId);
+
   if (!el) return;
+
   if (url) {
+
     const img = document.createElement("img");
+
     img.src = url; img.className = "selector-logo";
+
     img.style.cssText = `width:${size}px;height:${size}px`;
+
     img.onerror = () => img.replaceWith(makePlaceholder(size));
+
     el.replaceWith(img);
-    img.id = wrapId;
+img.id = wrapId;
+
   }
+
 }
 
 function makePlaceholder(size) {
+
   const d = document.createElement("div");
+
   d.className = "no-logo";
+
   d.style.cssText = `width:${size}px;height:${size}px`;
+
   return d;
+
 }
 
 function setTableHeader(headerId, cardId, url, title, color) {
+
   const header = document.getElementById(headerId);
+
   const card   = document.getElementById(cardId);
+
   if (!header || !card) return;
+
   card.style.borderTopColor = color;
+
   const logoEl = url
+
     ? `<img class="th-logo" src="${url}" onerror="this.style.display='none'" style="width:32px;height:32px;object-fit:contain;border-radius:4px;background:rgba(255,255,255,0.08);flex-shrink:0">`
+
     : `<div style="width:32px;height:32px;border-radius:4px;background:rgba(255,255,255,0.1);flex-shrink:0"></div>`;
+
   header.innerHTML = `${logoEl}<span style="font-family:'Bebas Neue',sans-serif;font-size:clamp(16px,3vw,20px);letter-spacing:0.05em;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</span>`;
+
 }
 
 function updateTabLabels(teamName, oppName) {
+
   const t = document.getElementById("tab-team");
+
   const o = document.getElementById("tab-opp");
+
   if (t) t.textContent = "Our Throw";
+
   if (o) o.textContent = oppName;
+
 }
 
 function renderTable(theadId, tbodyId, rows) {
+
   document.getElementById(theadId).innerHTML =
+
     `<tr>${VIEW_COLS.map(c => `<th>${c}</th>`).join("")}</tr>`;
+
   document.getElementById(tbodyId).innerHTML = rows.length
+
     ? rows.map(r => `<tr>${VIEW_COLS.map(c => {
+
         const v = r[c] ?? "";
+
         return c === "Outcome"
+
           ? `<td class="${v === "Won" ? "won" : "lost"}">${v}</td>`
+
           : `<td>${v}</td>`;
+
       }).join("")}</tr>`).join("")
+
     : `<tr class="empty-row"><td colspan="${VIEW_COLS.length}">No data for this fixture</td></tr>`;
+
 }
 
 function renderMetrics(containerId, rows, color) {
+
   const stats = [
+
     { label:"Top Call",     value: modeCall(rows) },
+
     { label:"Success Rate", value: pct(rows, r => r.filter(x => x.Outcome === "Won").length) },
+
     { label:"Defended",     value: pct(rows, r => r.filter(x => x.Defended === "Y").length) },
+
   ];
+
   document.getElementById(containerId).innerHTML = stats.map(s => `
-    <div class="metric" style="border-top-color:${color}">
-      <div class="metric-label">${s.label}</div>
-      <div class="metric-value">${s.value}</div>
-    </div>`).join("");
+<div class="metric" style="border-top-color:${color}">
+<div class="metric-label">${s.label}</div>
+<div class="metric-value">${s.value}</div>
+</div>`).join("");
+
 }
 
 function renderPitch(teamRows, oppRows, teamName, oppName, teamColor, oppColor) {
+
   const isMobile = window.innerWidth <= 640;
+
   const PITCH_LEN = 100, PITCH_WID = 70;
+
   const traces = [];
 
   for (const [rows, color, name] of [[teamRows, teamColor, teamName], [oppRows, oppColor, oppName]]) {
+
     for (const [outcome, symbol] of [["Won","circle"],["Lost","x"]]) {
+
       const s = rows.filter(r => r.Outcome === outcome);
+
       if (!s.length) continue;
+
+      // Map Side: "0" = Near (bottom of pitch, y=5), "70" = Far (top, y=65)
+
+      // Add small random jitter so overlapping markers don't stack invisibly
+
+      const mapSide = v => {
+
+        const base = String(v).trim() === "0" ? 12 : 58;
+
+        return base + (Math.random() - 0.5) * 6;
+
+      };
+
       traces.push({
+
         x: s.map(r => +r["Distance to Opponent Tryline"]),
-        y: s.map(r => +r["Side"]),
+
+        y: s.map(r => mapSide(r["Side"])),
+
         mode: "markers",
+
         cliponaxis: false,
+
         type: "scatter",
+
         marker: { size: isMobile ? 11 : 14, color, symbol, opacity: 0.92, line: { color:"white", width: 1.5 } },
+
         name: `${name} — ${outcome}`,
+
         customdata: s.map(r => [r.Call||"—", r.Play||"—", r.Receiver||"—"]),
+
         hovertemplate: "<b>%{customdata[0]}</b><br>%{x}m · %{customdata[1]}<br>%{customdata[2]}<extra></extra>",
+
       });
+
     }
+
   }
 
   const shapes = [
+
     { type:"rect", x0:0, y0:0, x1:PITCH_LEN, y1:PITCH_WID, fillcolor:"#3a8a3a", line:{width:0}, layer:"below" },
+
     { type:"rect", x0:0,  y0:0, x1:5,   y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
+
     { type:"rect", x0:95, y0:0, x1:100, y1:PITCH_WID, fillcolor:"#2d7030", line:{width:0}, layer:"below" },
+
     ...[0,100].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"white",width:2.5}, layer:"below" })),
+
     ...[5,22,50,78,95].map(x => ({ type:"line", x0:x, y0:0, x1:x, y1:PITCH_WID, line:{color:"rgba(255,255,255,0.4)",width:1.5,dash:"dash"}, layer:"below" })),
+
   ];
 
   const annotations = isMobile
+
     ? [50].map(x => ({ x, y: PITCH_WID+2, text:`${x}m`, showarrow:false, font:{color:"white",size:10,family:"Bebas Neue"}, xanchor:"center" }))
+
     : [5,22,50,78,95].map(x => ({ x, y: PITCH_WID+2, text:`${x}m`, showarrow:false, font:{color:"white",size:11,family:"Bebas Neue"}, xanchor:"center" }));
 
   Plotly.newPlot("pitch", traces, {
+
     shapes, annotations,
+
     font: { family:"Bebas Neue, sans-serif" },
+
     paper_bgcolor: "#1a1a1a",
+
     plot_bgcolor: "#3a8a3a",
+
     legend: {
+
       orientation:"h", yanchor:"bottom", y: 1.05,
+
       xanchor:"center", x:0.5,
+
       bgcolor:"rgba(0,0,0,0)",
+
       font:{ color:"white", size: isMobile ? 11 : 13 },
+
     },
+
     xaxis: {
+
       range:[-2,102], showgrid:false, zeroline:false,
+
       title:{ text:"Distance to Opponent Try Line (m)", font:{color:"white",size:11}, standoff:8 },
+
       tickfont:{ color:"white", size: isMobile ? 10 : 12 },
+
     },
+
     yaxis: {
-      range:[-8,78], showgrid:false, zeroline:false,
-      tickvals:[0,70], ticktext:["Near","Far"],
+
+      range:[0, 70], showgrid:false, zeroline:false,
+
+      tickvals:[12, 58], ticktext:["Near","Far"],
+
       tickfont:{ color:"white", size: isMobile ? 10 : 12 },
+
     },
+
     margin: isMobile
+
       ? { t:20, b:60, l:44, r:10 }
+
       : { t:20, b:60, l:60, r:20 },
+
     height: isMobile ? 280 : 400,
+
   }, { responsive:true, displayModeBar:false, scrollZoom:false });
+
 }
 
 // ─────────────────────────────────────────────────────
+
 // Main render
+
 // ─────────────────────────────────────────────────────
+
 function render() {
+
   const selectedTeam = document.getElementById("team-select").value;
+
   const selectedOpp  = document.getElementById("opp-select").value;
+
   const teamCfg = getCfg(selectedTeam);
+
   const oppCfg  = getCfg(selectedOpp);
 
   document.getElementById("team-card").style.borderLeftColor = teamCfg.color;
+
   document.getElementById("opp-card").style.borderLeftColor  = oppCfg.color;
 
   setLogo("team-logo-wrap", teamCfg.logo, 36);
+
   setLogo("opp-logo-wrap",  oppCfg.logo,  36);
 
   setTableHeader("team-table-header", "team-table-card", teamCfg.logo, selectedTeam, teamCfg.color);
+
   setTableHeader("opp-table-header",  "opp-table-card",  oppCfg.logo,  selectedOpp,  oppCfg.color);
 
   updateTabLabels(selectedTeam, selectedOpp);
 
   const fixture = allData.filter(r => r.Team === selectedTeam && r.Opponent === selectedOpp);
+
   const teamRows = fixture.filter(r => r["Throw In"] === "Old Belvedere");
+
   const oppRows  = fixture.filter(r => r["Throw In"] === selectedOpp);
 
   renderTable("team-thead", "team-tbody", teamRows);
+
   renderTable("opp-thead",  "opp-tbody",  oppRows);
+
   renderMetrics("team-metrics", teamRows, teamCfg.color);
+
   renderMetrics("opp-metrics",  oppRows,  oppCfg.color);
+
   renderPitch(teamRows, oppRows, selectedTeam, selectedOpp, teamCfg.color, oppCfg.color);
+
 }
 
 // ─────────────────────────────────────────────────────
+
 // Re-render pitch on resize (handles orientation change)
+
 // ─────────────────────────────────────────────────────
+
 let resizeTimer;
+
 window.addEventListener("resize", () => {
+
   clearTimeout(resizeTimer);
+
   resizeTimer = setTimeout(render, 200);
+
 });
 
 // ─────────────────────────────────────────────────────
+
 // Populate selects
+
 // ─────────────────────────────────────────────────────
+
 function populateSelects() {
+
   const known = new Set(Object.keys(STYLERS));
+
   const teams     = [...new Set(allData.map(r => r.Team))    ].filter(t => known.has(t)).sort();
+
   const opponents = [...new Set(allData.map(r => r.Opponent))].filter(t => known.has(t)).sort();
 
   const ts = document.getElementById("team-select");
+
   const os = document.getElementById("opp-select");
+
   ts.innerHTML = teams.map(t     => `<option value="${t}">${t}</option>`).join("");
+
   os.innerHTML = opponents.map(t => `<option value="${t}">${t}</option>`).join("");
+
   ts.addEventListener("change", render);
+
   os.addEventListener("change", render);
+
   render();
+
 }
 
 // ─────────────────────────────────────────────────────
+
 // Sample data fallback
+
 // ─────────────────────────────────────────────────────
+
 const SAMPLE = [
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"A1",Movement:"Y",Outcome:"Won",Clean:"N",Play:"Crooked?",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":20,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"L3",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Mark McCarthy",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":40,Side:70},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"A2 Tempo Ferrari",Movement:"N",Outcome:"Lost",Clean:"N",Play:"Stolen",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":45,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"B3",Movement:"Y",Outcome:"Lost",Clean:"N",Play:"Overthrown",Receiver:"Mark McCarthy",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":60,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"L2",Movement:"N",Outcome:"Won",Clean:"N",Play:"",Receiver:"Jack Spicer",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":10,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"C1",Movement:"Y",Outcome:"Won",Clean:"N",Play:"Overthrown",Receiver:"Jack Spicer",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":57,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"B3",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Jack Spicer",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":67,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Belvedere",Call:"B31",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Strike",Receiver:"Liam El Sibai",Hooker:"Stephen Ryan",Defended:"Y",Defender:"NA",Personnel:5,"Distance to Opponent Tryline":7,Side:0},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake B, hit A",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":78,Side:70},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake B, hit C",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":79,Side:70},
+
   {Team:"Old Belvedere J2",Opponent:"Old Wesley","Throw In":"Old Wesley",Call:"Fake A, hit A",Movement:"Y",Outcome:"Won",Clean:"Y",Play:"Maul",Receiver:"NA",Hooker:"NA",Defended:"N",Defender:"NA",Personnel:0,"Distance to Opponent Tryline":78,Side:70},
+
 ];
 
 if (SHEET_URL.includes("SHEET_ID")) {
+
   allData = SAMPLE;
+
   populateSelects();
+
 } else {
+
   Papa.parse(SHEET_URL, {
+
     download: true, header: true, skipEmptyLines: true,
+
     complete(r) { allData = r.data; populateSelects(); },
+
     error()     { allData = SAMPLE; populateSelects(); },
+
   });
+
 }
 </script>
 </body>
 </html>
+ 
